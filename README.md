@@ -21,9 +21,9 @@ The collected data is then processed by the backend and visualized on a web appl
 - LoRaWAN Library
 - GPS Library
 ##  Repository Structure
-├── f103_data_GPS_Lora/      # Embedded firmware
-├── image/                   # Hardware design, device photos, and system screenshots
-└── README.md
+f103_data_GPS_Lora/      # Embedded firmware
+image/                   # Hardware design, device photos, and system screenshots
+README.md
 ## Features
 - GPS location acquisition
 - LoRaWAN uplink communication
