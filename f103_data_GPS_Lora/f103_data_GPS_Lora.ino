@@ -33,16 +33,12 @@ uint8_t nwkKey[] = { 0x15, 0x63, 0x29, 0xC1, 0x88, 0xFF, 0x0D, 0x11, 0xD0, 0xFF,
 
 LoRaWANNode node(&radio, &AS923_2, 2);
 
-// ========================================
-// Biến toàn cục
-// ========================================
-uint32_t packetCount = 1; // Bộ đếm số gói tin đã gửi
+uint32_t packetCount = 1;
 int sendInterval = 10;
 float rssi = -999;
-float snr  = -999;    // Thời gian chờ giữa 2 lần gửi (giây)
+float snr  = -999;
 
-// ========================================
-// Hàm Read GPS
+// ===========GPS=======
 // ========================================
 bool readGPS(float &lat, float &lon, unsigned long timeout_ms) {
   unsigned long start = millis();
@@ -65,18 +61,18 @@ void setup() {
 
   Serial.println("\n=== GPS + LoRaWAN + Blue Pill ===");
 
-  // 1. Khởi tạo OLED & GPS UART
+  // OLED & GPS UART
   Serial2.begin(9600);
   Wire.begin();
   oled.begin(&Adafruit128x64, 0x3C);
   oled.setFont(System5x7);
 
-  // GIAO DIỆN 1: START LORA NODE
+  // START LORA NODE
   oled.clear();
   oled.println("== Start Lora Node ==");
   oled.println();
   oled.print("GPS:    ");
-  oled.println("OK"); // HardwareSerial mặc định khởi tạo thành công
+  oled.println("OK");
 
   SPI.begin();
   
@@ -88,18 +84,18 @@ void setup() {
     oled.println("Failed");
     Serial.print("THAT BAI! Ma loi: ");
     Serial.println(state);
-    while (true); // Treo máy nếu RFM95 lỗi
+    while (true); 
   } else {
     oled.println("OK");
     Serial.println("OK");
   }
   
-  delay(2500); // Chờ 2.5s để người dùng đọc kịp màn hình khởi tạo
+  delay(2500);
 
-  // 2. Khởi tạo OTAA
+  // Set up OTAA
   node.beginOTAA(joinEUI, devEUI, nwkKey, appKey);
 
-  // GIAO DIỆN 2: JOINING
+  // JOINING
   oled.clear();
   oled.println("== Joining ... ==");
   oled.println();
@@ -117,18 +113,18 @@ void setup() {
     if (joinState == RADIOLIB_LORAWAN_NEW_SESSION) {
       Serial.println("JOIN THANH CONG!");
       
-      // GIAO DIỆN 3: JOIN ACCEPTED
+      // JOIN ACCEPTED
       oled.clear();
       oled.println("== Join Accepted ==");
       oled.println();
       oled.println("OTAA: OK");
       oled.print("Freq: "); oled.println("921.4 MHz");
       oled.print("Plan: "); oled.println("AS923-2");
-      delay(3000); // Chờ 3s để xem thông số sóng
+      delay(3000);
       break;
     }
 
-    // Đọc GPS trong lúc chờ 10s để không rớt tín hiệu
+    
     unsigned long waitStart = millis();
     while (millis() - waitStart < 10000) {
       while (Serial2.available()) {
@@ -144,9 +140,9 @@ void loop() {
   uint8_t num_sat = 255; 
 
   Serial.print("Dang doc GPS... ");
-  bool gpsOK = readGPS(lat, lon, 10000); // Dành tối đa 10s để lấy tọa độ
+  bool gpsOK = readGPS(lat, lon, 10000);
 
-  // Nạp số lượng vệ tinh
+  
   if (gpsOK) {
     unsigned long t = millis();
     while (millis() - t < 1500) {
@@ -157,7 +153,7 @@ void loop() {
     if (gps.satellites.isValid()) num_sat = gps.satellites.value();
   }
 
-  // Đóng gói Payload 9 bytes
+  //  Payload 9 bytes
   int32_t lat_int = (int32_t)(lat * 10000000);
   int32_t lon_int = (int32_t)(lon * 10000000);
   uint8_t payload[9];
@@ -171,7 +167,7 @@ void loop() {
   payload[7] = (lon_int      ) & 0xFF;
   payload[8] = num_sat;
 
-  // Gửi dữ liệu LoRaWAN
+  // Data LoRaWAN
   Serial.print("Dang gui goi LoRa... ");
   uint8_t downlink[256];
   LoRaWANEvent_t eventUp;
@@ -184,19 +180,19 @@ void loop() {
   } else {
     Serial.print("LOI GUI: "); Serial.println(state);
   }
-  // Lưu RSSI/SNR ngay sau sendReceive
+  // RSSI/SNR
   if (state == RADIOLIB_LORAWAN_DOWNLINK) {
   rssi = radio.getRSSI();
   snr  = radio.getSNR();
   }
   uint8_t sf = 12 - eventUp.datarate;
   // =========================================================
-  // GIAO DIỆN 4 & 5: HIỂN THỊ GÓI TIN VÀ ĐẾM NGƯỢC THỜI GIAN
+  // Count time
   // =========================================================
   for (int i = sendInterval; i > 0; i--) {
-    oled.clear(); // Xóa sạch màn hình ở mỗi giây để vẽ lại khung hình mới
+    oled.clear(); 
 
-    // Tiêu đề gói tin
+    // Packet number
     oled.print("== Packet "); oled.print(packetCount); oled.println(" ==");
     
     // Khối thông tin GPS
@@ -222,7 +218,7 @@ void loop() {
       oled.print(" Fr:"); oled.print(eventUp.freq, 1); oled.println("MHz");
       oled.print("Next: "); oled.print(i); oled.println("s");
 
-    // Thay vì dùng delay(1000) làm treo hệ thống, ta dùng vòng lặp 1 giây để đọc nền GPS
+  
     unsigned long tick = millis();
     while (millis() - tick < 1000) {
       while (Serial2.available()) {
@@ -230,6 +226,6 @@ void loop() {
       }
     }
   }
-  // Chuẩn bị sang chu kỳ mới
+  // New loop
   packetCount++;
 }
